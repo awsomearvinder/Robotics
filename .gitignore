@@ -1,0 +1,8 @@
+data.bin
+*.bin 
+*.dll
+*.pdb 
+*.json
+*.CopyComplete
+*.cache
+obj/Debug/netcoreapp2.1/New Folder.csproj.FileListAbsolute.txt
