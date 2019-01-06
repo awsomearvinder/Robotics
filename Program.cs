@@ -24,15 +24,15 @@ namespace GmailQuickstart
                 []Less hardcoding, ability to be used in other scenarios (Discord portion done, Gmail side still hardcoded.)
                 []Multiserver support?
                 [X]Make better classes (for neater code)
+                [] Make Code clean enough for non-programmers to understand and not a giant fucking mess.
         */
-        private static readonly HttpClient client = new HttpClient();
         //List of messages that have already been sent on discord
         public static List<string> SentMessages =new List<string> {};
         private static void Main(string[] args) 
         {
             //If the save file for sent messages exists, read it, otherwise assume initial run and start without loading it.
             if (File.Exists(@"data.bin")){
-                //Loads in List from SentMessages
+                //Loads in List to SentMessages
                 Load<List<string>>("data.bin",out SentMessages);
             }
             //Calls async function MainBotLogic
@@ -44,31 +44,32 @@ namespace GmailQuickstart
             List<Embed> EmbedsToSend = new List<Embed>();
              while (true)
             {
-                //Gets emails, First part of list has Email, second is email ID (gross but it works)
+                //Gets emails, First part of string array has Email, second is email ID (gross but it works)
                 List<string[]> Emails = GmailLib.GmailFunctions.GetEmails();
                 List<string> EmailIdsToSend = new List<string>();
-                Console.WriteLine(DateTime.Now);
                 //for every email, check if its sent, if it isn't, send the date.
                 foreach(string[] Email in Emails)
                 {
-                    //Date and place is on 5th line (arrays start at 0 whew), array indexed by lines
+                    //Date and place is on 5th line (arrays start at 0 whew), array indexed by lines, replace with regex later.
                     string DateForRobotics = Email[0].Split("\n\r")[4];
-                    //Get Date for robotics meeting
-                    
-                    //If email hasn't been sent before and The date is within a day after time of checking Make and set a embed object to send.
                     if (!SentMessages.Contains(Email[1]))
                     {   
+                        /*
+                        TODO: fix gross new years hack
+                         */
                         DateTime DateForRoboticsDateTimeObj;
-                        try{
+                        try
+                        {
                             DateForRoboticsDateTimeObj = DateTime.ParseExact(DateForRobotics.Substring(1,10).Replace("-"," "),"ddd dd MMM",System.Globalization.CultureInfo.InvariantCulture);
                         }
-                        catch{
+                        catch
+                        {
                             //If its new years it can break, as it thinks that your looking at the date of current year when it should be looking at date of next year.
                             DateForRoboticsDateTimeObj = DateTime.ParseExact(DateForRobotics.Substring(1,10).Replace("-"," ") + " " + (DateTime.Now.Year+1).ToString(),"ddd dd MMM yyyy",System.Globalization.CultureInfo.InvariantCulture);
                         }
+                        //if the date for robotics meeting has not passed and the date is only 1 day away, add date and time to embeds to send.
                         if(DateForRoboticsDateTimeObj>DateTime.Now&&DateForRoboticsDateTimeObj-DateTime.Now<new TimeSpan(1,0,0,0))
                         {
-                            Console.WriteLine(DateForRoboticsDateTimeObj.Subtract(DateTime.Now));
                             EmbedsToSend.Add(new Embed {
                                     title = "There is a Upcoming Robotics Meeting!",
                                     description = "Date/Time: "+ DateForRobotics,
@@ -77,7 +78,7 @@ namespace GmailQuickstart
                             Console.WriteLine("Date/Time: " + DateForRobotics);
                             //Acts as a buffer for emails that are going to be sent, but not yet sent.
                             EmailIdsToSend.Add(Email[1]);
-                    }
+                        }
                     }
                 }
                 //Make and send webhook
@@ -88,8 +89,8 @@ namespace GmailQuickstart
                     avatar_url = "https://cdn.discordapp.com/avatars/453944196307615746/9a0bf2d580b7efa4f676196fb638c362.png?size=256"
                 };
                 //Sends message
-                var response = await WebhookToSend.SendWebhook("https://discordapp.com/api/webhooks/520479893188902933/HcyFCEaY0Cy16c-u6GlX0kHRIwQJj3NLwVG1V6ei4QcT9W_b0TL71bNGhaP0jGdvUn8p ");
-                Console.WriteLine(response);
+                var response = await WebhookToSend.SendWebhook(ReadConfig());
+                Console.WriteLine("Discord's return JSON: \n" + response);
                 //Adds EmailIds as sent.
                 SentMessages.AddRange(EmailIdsToSend);
                 Save<List<string>>(SentMessages, "data.bin");
@@ -113,6 +114,10 @@ namespace GmailQuickstart
                 BinaryFormatter bin = new BinaryFormatter();
                 OutputValue = (T)bin.Deserialize(stream);
             }
+        }
+        private static string ReadConfig()
+        {
+            return File.ReadAllText(@"Config.txt");
         }
     }
 }
