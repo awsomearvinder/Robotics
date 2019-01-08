@@ -7,3 +7,7 @@ data.bin
 *.cache
 obj/Debug/netcoreapp2.1/New Folder.csproj.FileListAbsolute.txt
 Config.txt
+
+bin/
+
+obj/

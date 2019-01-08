@@ -26,7 +26,8 @@ namespace GmailQuickstart
                 [X]Make better classes (for neater code)
                 [] Make Code clean enough for non-programmers to understand and not a giant fucking mess.
         */
-        //List of messages that have already been sent on discord
+
+        //List of messages that have already been sent
         public static List<string> SentMessages =new List<string> {};
         private static void Main(string[] args) 
         {
@@ -41,41 +42,33 @@ namespace GmailQuickstart
 
         private static async Task MainBotLogic()
         {
+            List<string> EmailIdsToSend = new List<string>();
             List<Embed> EmbedsToSend = new List<Embed>();
              while (true)
             {
                 //Gets emails, First part of string array has Email, second is email ID (gross but it works)
                 List<string[]> Emails = GmailLib.GmailFunctions.GetEmails();
-                List<string> EmailIdsToSend = new List<string>();
                 //for every email, check if its sent, if it isn't, send the date.
                 foreach(string[] Email in Emails)
                 {
                     //Date and place is on 5th line (arrays start at 0 whew), array indexed by lines, replace with regex later.
-                    string DateForRobotics = Email[0].Split("\n\r")[4];
+                    string DateForRoboticsStr = Email[0].Split("\n\r")[4];
                     if (!SentMessages.Contains(Email[1]))
                     {   
                         /*
-                        TODO: fix gross new years hack
+                        TODO: Years change.
                          */
                         DateTime DateForRoboticsDateTimeObj;
-                        try
-                        {
-                            DateForRoboticsDateTimeObj = DateTime.ParseExact(DateForRobotics.Substring(1,10).Replace("-"," "),"ddd dd MMM",System.Globalization.CultureInfo.InvariantCulture);
-                        }
-                        catch
-                        {
-                            //If its new years it can break, as it thinks that your looking at the date of current year when it should be looking at date of next year.
-                            DateForRoboticsDateTimeObj = DateTime.ParseExact(DateForRobotics.Substring(1,10).Replace("-"," ") + " " + (DateTime.Now.Year+1).ToString(),"ddd dd MMM yyyy",System.Globalization.CultureInfo.InvariantCulture);
-                        }
+                        DateForRoboticsDateTimeObj = ConvertToDateTimeObj(DateForRoboticsStr);
                         //if the date for robotics meeting has not passed and the date is only 1 day away, add date and time to embeds to send.
                         if(DateForRoboticsDateTimeObj>DateTime.Now&&DateForRoboticsDateTimeObj-DateTime.Now<new TimeSpan(1,0,0,0))
                         {
                             EmbedsToSend.Add(new Embed {
                                     title = "There is a Upcoming Robotics Meeting!",
-                                    description = "Date/Time: "+ DateForRobotics,
+                                    description = "Date/Time: "+ DateForRoboticsStr,
                                     color = 16731254
                                 });
-                            Console.WriteLine("Date/Time: " + DateForRobotics);
+                            Console.WriteLine("Date/Time: " + DateForRoboticsStr);
                             //Acts as a buffer for emails that are going to be sent, but not yet sent.
                             EmailIdsToSend.Add(Email[1]);
                         }
@@ -90,7 +83,14 @@ namespace GmailQuickstart
                 };
                 //Sends message
                 var response = await WebhookToSend.SendWebhook(ReadConfig());
-                Console.WriteLine("Discord's return JSON: \n" + response);
+                if (string.IsNullOrEmpty(response))
+                {
+                    Console.WriteLine("Message Succesfully sent!");
+                }
+                else
+                {
+                    Console.WriteLine("Discord's return Json: \n" + response);
+                }
                 //Adds EmailIds as sent.
                 SentMessages.AddRange(EmailIdsToSend);
                 Save<List<string>>(SentMessages, "data.bin");
@@ -118,6 +118,11 @@ namespace GmailQuickstart
         private static string ReadConfig()
         {
             return File.ReadAllText(@"Config.txt");
+        }
+        private static DateTime ConvertToDateTimeObj(string DateForRoboticsStr)
+        {
+            //Time starts at char 1 and ends at char 10, sent in format 3 letter day, number day, month abbreviation. Culture dosen't matter.
+            return DateTime.ParseExact(DateForRoboticsStr.Substring(1,10).Replace("-"," "),"ddd dd MMM",System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }
